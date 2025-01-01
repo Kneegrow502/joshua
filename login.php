@@ -1,32 +1,56 @@
 <?php
 session_start();
 
-// Remove any network/IP checks here
-// e.g., Remove code like:
-// $allowed_ips = ['192.168.1.100', '192.168.1.101'];
-// $user_ip = $_SERVER['REMOTE_ADDR'];
-// if (!in_array($user_ip, $allowed_ips)) {
-//     echo "You must be connected to the school network to log in.";
-//     exit;
-// }
+// Database connection details
+$servername = "localhost";  // Database server
+$username = "root";         // Database username (default in XAMPP)
+$password = "";             // Database password (empty in XAMPP by default)
+$dbname = "system";         // Your database name
 
-$validUsername = "student";
-$validPassword = "password123";
+// Create a connection to MySQL
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check the connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
 $errorMsg = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'];
-    $password = $_POST['password'];
+    $input_password = $_POST['password'];
 
-    if ($username === $validUsername && $password === $validPassword) {
-        $_SESSION['logged_in'] = true;
-        $_SESSION['username'] = $username;
-        header('Location: index.php');
-        exit;
+    // Fetch the stored password from the database for the entered username
+    $sql = "SELECT password FROM students WHERE username = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $username);  // Bind username parameter
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $stmt->bind_result($stored_password);  // Get the stored password
+        $stmt->fetch();
+
+        // Verify if the input password matches the stored password
+        if ($input_password === $stored_password) {
+            // Password matches, start session and redirect
+            $_SESSION['logged_in'] = true;
+            $_SESSION['username'] = $username;
+            header('Location: index.php');  // Redirect to the homepage/dashboard
+            exit;
+        } else {
+            // Invalid credentials
+            $errorMsg = "Invalid username or password. Please try again.";
+        }
     } else {
+        // Username not found
         $errorMsg = "Invalid username or password. Please try again.";
     }
+
+    // Close the prepared statement and database connection
+    $stmt->close();
+    $conn->close();
 }
 ?>
 
