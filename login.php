@@ -1,16 +1,13 @@
 <?php
 session_start();
+$servername = "localhost";
+$username = "root";
+$password = "12345678";
+$dbname = "system";
+$port = "3307";
 
-// Database connection details
-$servername = "localhost";  // Database server
-$username = "root";         // Database username (default in XAMPP)
-$password = "";             // Database password (empty in XAMPP by default)
-$dbname = "system";         // Your database name
+$conn = new mysqli($servername, $username, $password, $dbname, $port);
 
-// Create a connection to MySQL
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check the connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
@@ -21,30 +18,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'];
     $input_password = $_POST['password'];
 
-    // Fetch the stored password from the database for the entered username
-    $sql = "SELECT password FROM students WHERE username = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $username);  // Bind username parameter
+    // Check if the username exists in the student table
+    $sql_student = "SELECT username, password FROM students WHERE username = ?";
+    $stmt = $conn->prepare($sql_student);
+    $stmt->bind_param("s", $username);  // Bind username parameter for student
     $stmt->execute();
     $stmt->store_result();
 
     if ($stmt->num_rows > 0) {
-        $stmt->bind_result($stored_password);  // Get the stored password
+        $stmt->bind_result($db_username, $db_password);  // Get student username and password
         $stmt->fetch();
 
-        // Verify if the input password matches the stored password
-        if ($input_password === $stored_password) {
-            // Password matches, start session and redirect
+        // For students, verify the password using password_verify (hashed password)
+        if (password_verify($input_password, $db_password)) {
             $_SESSION['logged_in'] = true;
-            $_SESSION['username'] = $username;
-            header('Location: index.php');  // Redirect to the homepage/dashboard
+            $_SESSION['username'] = $db_username;
+            $_SESSION['role'] = 'student';
+            header('Location: index.php');  // Redirect to student dashboard
             exit;
         } else {
-            // Invalid credentials
+            // Invalid student credentials
             $errorMsg = "Invalid username or password. Please try again.";
         }
     } else {
-        // Username not found
+        // If the student doesn't exist, check if the user is an admin or teacher
+        // Admin check: if username is "admin", compare with plain-text password
+        if ($username === "admin" && $input_password === "admin_password") {
+            $_SESSION['logged_in'] = true;
+            $_SESSION['username'] = "admin";
+            $_SESSION['role'] = 'admin';
+            header('Location: admin_dashboard.php');  // Redirect to admin dashboard
+            exit;
+        }
+
+        // Teacher check: if username is "teacher", compare with plain-text password
+        if ($username === "teacher" && $input_password === "teacher_password") {
+            $_SESSION['logged_in'] = true;
+            $_SESSION['username'] = "teacher";
+            $_SESSION['role'] = 'teacher';
+            header('Location: teacher-page.php');  // Redirect to teacher dashboard
+            exit;
+        }
+
+        // If the username isn't found in any table, show error
         $errorMsg = "Invalid username or password. Please try again.";
     }
 

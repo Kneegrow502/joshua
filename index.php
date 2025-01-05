@@ -137,7 +137,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       <img src="https://via.placeholder.com/250x150?text=Computer+Programming" alt="Computer Programming">
       <h3>Computer Programming</h3>
       <p>Learn the fundamentals of programming and improve your coding abilities with quizzes on languages such as Python, Java, and C++.</p>
-      <a href="programming-quiz.html">Enter Class</a>
+      <a href="take-quiz.php">Enter Class</a>
       <a href="logout.php">Logout</a>
 
     </div>
